@@ -1,2 +1,7 @@
 node_modules
-src
+connectionModel.js
+connectionController.js
+userController.js
+connectionRoute.js
+userRoutes.js
+db.js
