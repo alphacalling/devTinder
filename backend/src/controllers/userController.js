@@ -1,6 +1,6 @@
 require("dotenv").config();
 const userSchema = require("../models/userModel");
-// view dashboard 
+// view dashboard
 const profileView = async (req, res) => {
   const { userId } = req.user;
   const userDashboard = await userSchema.findById(userId);
@@ -18,10 +18,10 @@ const profileView = async (req, res) => {
   });
 };
 
-// profile update 
+// profile update
 const profileUpdate = async (req, res) => {
   const { userId } = req.user;
-  let { userName, photoUrl, age, phone, skills } = req.body;
+  let { userName, photoUrl, age, phone, skills, gender, about } = req.body;
   const findUser = await userSchema.findById(userId);
   if (!findUser) {
     return res.status(404).json({
@@ -39,7 +39,7 @@ const profileUpdate = async (req, res) => {
     "sql",
   ];
 
-  // checking and validating skills 
+  // checking and validating skills for storing in array format
   let normalizedSkills = findUser.skills;
 
   if (typeof skills === "string") {
@@ -71,12 +71,14 @@ const profileUpdate = async (req, res) => {
       message: `Invalid skills: ${invalidSkills.join(", ")}`,
     });
   }
-  // updating values 
+  // updating values
   if (userName) findUser.userName = userName;
   if (photoUrl) findUser.photoUrl = photoUrl;
   if (age) findUser.age = age;
   if (phone) findUser.phone = phone;
   if (normalizedSkills) findUser.skills = normalizedSkills;
+  if (gender) findUser.gender = gender;
+  if (about) findUser.about = about;
 
   // save details in database
   await findUser.save();

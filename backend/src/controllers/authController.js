@@ -7,7 +7,7 @@ const { validator } = require("../utils/validator");
 //register user
 const register = async (req, res) => {
   try {
-    const { email, password, userName, age, phone, photoUrl, skills } =
+    const { email, password, userName, age, phone, photoUrl, skills, gender, about } =
       req.body;
     console.log("email ", email + " password ", password);
 
@@ -42,6 +42,8 @@ const register = async (req, res) => {
       phone: phone,
       photoUrl: photoUrl,
       skills: skills,
+      gender:gender,
+      about:about
     });
 
     await newUser.save();
