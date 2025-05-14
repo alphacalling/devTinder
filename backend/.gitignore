@@ -1,7 +1,7 @@
 node_modules
 connectionModel.js
 connectionController.js
-userController.js
 connectionRoute.js
-userRoutes.js
 db.js
+.env
+dotenv

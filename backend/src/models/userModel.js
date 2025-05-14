@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema({
   age: {
     type: Number,
   },
+  gender: {
+    type: String,
+    enum: ["male", "female", "other"],
+  },
   phone: {
     type: String,
     trim: true,
@@ -27,6 +31,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: "https://images.app.goo.gl/fYYrRKxXS53UeB396",
+  },
+  about: {
+    type: String,
+    trim: true,
   },
   skills: {
     type: [String],
