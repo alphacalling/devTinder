@@ -7,9 +7,18 @@ const { validator } = require("../utils/validator");
 //register user
 const register = async (req, res) => {
   try {
-    const { email, password, userName, age, phone, photoUrl, skills, gender, about } =
-      req.body;
-    console.log("email ", email + " password ", password);
+    const {
+      email,
+      password,
+      userName,
+      age,
+      phone,
+      photoUrl,
+      skills,
+      gender,
+      about,
+    } = req.body;
+    // console.log("email ", email + " password ", password);
 
     // email validation
     let validationError = validator(req);
@@ -42,8 +51,8 @@ const register = async (req, res) => {
       phone: phone,
       photoUrl: photoUrl,
       skills: skills,
-      gender:gender,
-      about:about
+      gender: gender,
+      about: about,
     });
 
     await newUser.save();
@@ -87,7 +96,11 @@ const logIn = async (req, res) => {
       });
     }
     const token = jwt.sign(
-      { userId: findUser._id, email: findUser.email, userName: findUser.userName },
+      {
+        userId: findUser._id,
+        email: findUser.email,
+        userName: findUser.userName,
+      },
       process.env.ACCESS_SECRET,
       {
         expiresIn: 60 * 60 * 15,
@@ -103,7 +116,11 @@ const logIn = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User logged In successfully",
-      data: token,
+      // data: token,
+      user: {
+        userName: findUser.userName,
+        photoUrl: findUser.photoUrl,
+      },
     });
   } catch (err) {
     return res.status(500).json({
