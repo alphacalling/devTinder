@@ -34,6 +34,7 @@ const register = async (req, res) => {
       });
     }
     const findUser = await userSchema.findOne({ email });
+    console.log(findUser);
     if (findUser) {
       return res.status(400).json({
         success: false,
