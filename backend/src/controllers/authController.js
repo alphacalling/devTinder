@@ -144,8 +144,6 @@ const changePassword = async (req, res) => {
       });
     }
     const findUser = await userSchema.findOne({ _id: id });
-    // console.log(findUser);
-
     if (!findUser) {
       return res.status(404).json({
         success: false,
@@ -169,8 +167,6 @@ const changePassword = async (req, res) => {
       });
     }
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    console.log(newPasswordHash);
-
     findUser.password = newPasswordHash;
 
     await findUser.save();
