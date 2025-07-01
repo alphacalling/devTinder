@@ -11,7 +11,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const router = express.Router();
 router.post("/register", register);
 router.post("/login", logIn);
-router.post("/change-password",authMiddleware, changePassword);
+router.patch("/change-password",authMiddleware, changePassword);
 router.get("/logout", logOut);
 router.get("/refresh-token", refreshToken);
 

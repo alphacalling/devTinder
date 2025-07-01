@@ -239,7 +239,7 @@ const getRejectedConnection = async (req, res) => {
 const getConnectionFeed = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 1;
     const skip = (page - 1) * limit;
 
     // Get all user IDs involved in a connection
@@ -262,12 +262,12 @@ const getConnectionFeed = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    if (unconnectedUsers.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No new users found",
-      });
-    }
+    // if (unconnectedUsers.length === 0) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: "No new users found",
+    //   });
+    // }
 
     return res.status(200).json({
       success: true,

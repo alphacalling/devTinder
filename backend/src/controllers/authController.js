@@ -18,7 +18,6 @@ const register = async (req, res) => {
       gender,
       about,
     } = req.body;
-    // console.log("email ", email + " password ", password);
 
     // email validation
     let validationError = validator(req);
@@ -133,14 +132,19 @@ const logIn = async (req, res) => {
 //change Password
 const changePassword = async (req, res) => {
   try {
-    const { email, oldPassword, newPassword } = req.body;
-    if (!email || !oldPassword || !newPassword) {
+    const { currentPassword, newPassword } = req.body;
+    const id = req.user.userId;
+    console.log("User ID: ", id);
+    
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
         message: "Please provide all details",
       });
     }
-    const findUser = await userSchema.findOne({ email });
+    const findUser = await userSchema.findOne({ _id: id });
+    // console.log(findUser);
+
     if (!findUser) {
       return res.status(404).json({
         success: false,
@@ -148,7 +152,7 @@ const changePassword = async (req, res) => {
       });
     }
     const isPasswordValid = await bcrypt.compare(
-      oldPassword,
+      currentPassword,
       findUser.password
     );
     if (!isPasswordValid) {
@@ -157,7 +161,7 @@ const changePassword = async (req, res) => {
         message: "Old password is not correct",
       });
     }
-    if (oldPassword === newPassword) {
+    if (currentPassword === newPassword) {
       return res.status(400).json({
         success: false,
         message: "Please provide different password",

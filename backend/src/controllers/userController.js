@@ -4,6 +4,8 @@ const userSchema = require("../models/userModel");
 const profileView = async (req, res) => {
   const { userId } = req.user;
   const userDashboard = await userSchema.findById(userId);
+  // console.log(userDashboard);
+
   if (!userDashboard) {
     return res.status(404).json({
       success: false,
@@ -58,7 +60,7 @@ const profileUpdate = async (req, res) => {
       });
     }
     normalizedSkills = skills.map((skill) => skill.toLowerCase());
-    console.log(normalizedSkills);
+    // console.log(normalizedSkills);
   }
 
   // invalid skills check
