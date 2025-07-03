@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   photoUrl: {
     type: String,
     trim: true,
-    default: "https://images.app.goo.gl/fYYrRKxXS53UeB396",
+    default: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
   },
   about: {
     type: String,
