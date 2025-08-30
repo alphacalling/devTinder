@@ -12,11 +12,13 @@ const userSchema = new mongoose.Schema({
   },
   userName: {
     type: String,
-    // required: true,
+    required: true,
     maxLength: 20,
+    trim: true,
   },
   age: {
     type: Number,
+    min: 18,
   },
   gender: {
     type: String,
@@ -27,28 +29,35 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxLength: 14,
   },
-  photoUrl: {
+  location: {
     type: String,
+    trim: true,
+  },
+  photoUrl: {
+    type: [String],
     trim: true,
     default: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
   },
   about: {
     type: String,
     trim: true,
+    maxLength: 300,
   },
-  skills: {
-    type: [String],
-    enum: [
-      "java",
-      "python",
-      "c++",
-      "javascript",
-      "reactjs",
-      "nodejs",
-      "mongoDB",
-      "sql",
-    ],
-  },
+  skills: [
+    {
+      type: [String],
+      enum: [
+        "java",
+        "python",
+        "c++",
+        "javascript",
+        "reactjs",
+        "nodejs",
+        "mongoDB",
+        "sql",
+      ],
+    },
+  ],
 });
 
 module.exports = mongoose.model("User", userSchema);
