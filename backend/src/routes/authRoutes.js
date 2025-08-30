@@ -9,10 +9,10 @@ const {
 const authMiddleware = require("../middlewares/authMiddleware");
 
 const router = express.Router();
-router.post("/register", register);
-router.post("/login", logIn);
-router.patch("/change-password",authMiddleware, changePassword);
-router.get("/logout", logOut);
-router.get("/refresh-token", refreshToken);
+router.post("/auth/register", register);
+router.post("/auth/login", logIn);
+router.patch("/auth/change-password",authMiddleware, changePassword);
+router.get("/auth/logout", logOut);
+router.get("/auth/refresh-token", refreshToken);
 
 module.exports = router;
