@@ -60,13 +60,14 @@ const register = async (req, res) => {
     let myuser = newUser;
     return res.status(200).json({
       success: true,
-      message: "user successfully registered successfully",
+      message: "user registered successfully",
       data: myuser,
     });
   } catch (err) {
+    console.log("error: ", err.message);
     return res.status(500).json({
       success: false,
-      message: "Internal server error: " + err.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -96,36 +97,31 @@ const logIn = async (req, res) => {
       });
     }
     const token = jwt.sign(
-      {
-        userId: findUser._id,
-        email: findUser.email,
-        userName: findUser.userName,
-      },
+      { userId: findUser._id },
       process.env.ACCESS_SECRET,
       {
         expiresIn: 60 * 60 * 15,
       }
     );
-    res.cookie("token", token);
-    // res.cookie("token", token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: "strict",
-    // });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
 
     return res.status(200).json({
       success: true,
       message: "User logged In successfully",
-      // data: token,
       user: {
         userName: findUser.userName,
         photoUrl: findUser.photoUrl,
       },
     });
   } catch (err) {
+    console.log("error: ", err.message);
     return res.status(500).json({
       success: false,
-      message: "Internal server error: " + err.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -175,9 +171,10 @@ const changePassword = async (req, res) => {
       message: "Password changed successfully",
     });
   } catch (err) {
+    console.log("Error:", err.message);
     return res.status(500).json({
       success: false,
-      message: "Internal server error: " + err.message,
+      message: "Internal Server Error",
     });
   }
 };
@@ -185,58 +182,80 @@ const changePassword = async (req, res) => {
 //refresh token
 const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.cookies;
-    if (!refreshToken)
-      return res.status(401).json({
-        success: false,
-        message: "No refresh token found",
-      });
+    const { refreshToken: refreshTokenFromCookie } = req.cookies;
 
-    const decode = jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY);
+    if (!refreshTokenFromCookie) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No refresh token found" });
+    }
+
+    const decoded = jwt.verify(
+      refreshTokenFromCookie,
+      process.env.REFRESH_SECRET
+    );
+
+    // Issue new access token
     const accessToken = jwt.sign(
-      { userId: decode.userId, email: decode.email },
+      { userId: decoded.userId },
       process.env.ACCESS_SECRET,
       { expiresIn: "15m" }
     );
 
     const currentTime = Math.floor(Date.now() / 1000);
-    const refreshTokenExpiration = decode.exp;
+    const refreshTokenExpiration = decoded.exp;
 
-    // generating new token if ACCESS_SECRET going to expire
+    let newRefreshToken = refreshTokenFromCookie;
+
+    // Rotate refresh token if < 15m left
     if (refreshTokenExpiration - currentTime < 900) {
-      const newRefreshToken = jwt.sign(
-        { userId: decode.userId, email: decode.email },
-        process.env.REFRESH_SECRET_KEY,
+      newRefreshToken = jwt.sign(
+        { userId: decoded.userId },
+        process.env.REFRESH_SECRET,
         { expiresIn: "1d" }
       );
-      return res.status(200).json({
-        accessToken: accessToken,
-        refreshToken: newRefreshToken,
+
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000,
+        // path: "/api/auth/refresh",
       });
     }
-    res.status(200).json({
-      accessToken: accessToken,
-    });
+
+    return res.status(200).json({ success: true, accessToken });
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid refresh token",
-    });
+    if (err.name === "TokenExpiredError") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Refresh token expired" });
+    }
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid refresh token" });
   }
 };
 
 //logout user
 const logOut = async (req, res) => {
   try {
-    res.clearCookie("token", { httpOnly: true, secure: true });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
     return res.status(200).json({
       success: true,
       message: "User logged out successfully",
     });
   } catch (err) {
+    console.log("Error: ", err.message);
     return res.status(500).json({
       success: false,
-      message: "Internal server error: " + err.message,
+      message: "Internal Server Error",
     });
   }
 };
