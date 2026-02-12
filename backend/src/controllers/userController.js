@@ -1,11 +1,12 @@
 require("dotenv").config();
 const userSchema = require("../models/userModel");
+const Profile = require("../models/profileModel");
 
-// view dashboard
+// view dashboard (user + dating profile)
 const profileView = async (req, res) => {
   const { userId } = req.user;
+
   const userDashboard = await userSchema.findById(userId);
-  // console.log(userDashboard);
 
   if (!userDashboard) {
     return res.status(404).json({
@@ -13,13 +14,16 @@ const profileView = async (req, res) => {
       message: "User not found in Database",
     });
   }
-  // console.log(userDashboard);
+
+  const profile = await Profile.findOne({ user: userId });
 
   userDashboard.password = undefined;
+
   return res.status(200).json({
     success: true,
     message: "User profile fetched successfully",
-    userDashboard,
+    user: userDashboard,
+    profile,
   });
 };
 
@@ -27,8 +31,28 @@ const profileView = async (req, res) => {
 const profileUpdate = async (req, res) => {
   try {
     const { userId } = req.user;
-    let { userName, photoUrl, age, phone, skills, gender, about, location } =
-      req.body;
+    let {
+      userName,
+      photoUrl,
+      age,
+      phone,
+      skills,
+      gender,
+      about,
+      location,
+      // profile-specific fields
+      tagline,
+      bio,
+      interests,
+      relationshipGoal,
+      jobTitle,
+      company,
+      education,
+      hometown,
+      preferences,
+      latitude,
+      longitude,
+    } = req.body;
 
     const findUser = await userSchema.findById(userId);
     if (!findUser) {
@@ -96,14 +120,63 @@ const profileUpdate = async (req, res) => {
     if (about !== undefined) findUser.about = about;
     if (location !== undefined) findUser.location = location;
 
-    // Save
+    // Upsert profile document
+    const existingProfile = await Profile.findOne({ user: userId });
+
+    let profileData = existingProfile || new Profile({ user: userId });
+
+    if (tagline !== undefined) profileData.tagline = tagline;
+    if (bio !== undefined) profileData.bio = bio;
+
+    if (interests !== undefined) {
+      if (typeof interests === "string") {
+        interests = [interests];
+      }
+      if (!Array.isArray(interests)) {
+        return res.status(400).json({
+          success: false,
+          message: "Interests must be a string or an array of strings",
+        });
+      }
+      profileData.interests = interests;
+    }
+
+    if (relationshipGoal !== undefined)
+      profileData.relationshipGoal = relationshipGoal;
+    if (jobTitle !== undefined) profileData.jobTitle = jobTitle;
+    if (company !== undefined) profileData.company = company;
+    if (education !== undefined) profileData.education = education;
+    if (hometown !== undefined) profileData.hometown = hometown;
+
+    if (preferences !== undefined) {
+      profileData.preferences = {
+        ...profileData.preferences?.toObject?.(),
+        ...preferences,
+      };
+    }
+
+    if (
+      latitude !== undefined &&
+      longitude !== undefined &&
+      !Number.isNaN(Number(latitude)) &&
+      !Number.isNaN(Number(longitude))
+    ) {
+      profileData.geoLocation = {
+        type: "Point",
+        coordinates: [Number(longitude), Number(latitude)],
+      };
+    }
+
+    // Save user & profile
     await findUser.save();
+    const savedProfile = await profileData.save();
     findUser.password = undefined;
 
     return res.status(200).json({
       success: true,
       message: "User profile updated successfully",
-      data: findUser,
+      user: findUser,
+      profile: savedProfile,
     });
   } catch (err) {
     return res.status(500).json({

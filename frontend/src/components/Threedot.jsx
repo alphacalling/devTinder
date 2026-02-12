@@ -68,7 +68,7 @@ export default function Threedot() {
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 z-10 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5">
+        <div className="absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5">
           <div className="py-1">
             <Link
               to="/profile-view"
@@ -81,7 +81,19 @@ export default function Threedot() {
               to="/connections"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
-              Connections
+              Discover
+            </Link>
+            <Link
+              to="/my-connections"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              My Connections
+            </Link>
+            <Link
+              to="/chat"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Chat
             </Link>
             <Link
               to="/change-password"

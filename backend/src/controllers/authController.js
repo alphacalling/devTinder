@@ -1,6 +1,6 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const userSchema = require("../models/userModel");
 const { validator } = require("../utils/validator");
 
@@ -113,6 +113,7 @@ const logIn = async (req, res) => {
       success: true,
       message: "User logged In successfully",
       user: {
+        _id: findUser._id,
         userName: findUser.userName,
         photoUrl: findUser.photoUrl,
       },

@@ -10,14 +10,15 @@ import "./App.css";
 import LogIn from "./components/LogIn";
 import React, { useEffect } from "react";
 import Navbar from "./components/Navbar";
-import Signup from "./components/Signup";
+import Register from "./components/Register";
 import Profile from "./components/Profile";
 import Feed from "./components/Connections";
 import Home from "./components/Home";
 import { setUser } from "./redux/slices/authSlice";
 import Connections from "./components/Connections";
 import ChangePassword from "./components/ChangePassword";
-
+import MyMatches from "./components/MyMatches";
+import Chat from "./components/Chat";
 
 function App() {
   const dispatch = useDispatch();
@@ -59,8 +60,16 @@ function App() {
           path="/register"
           element={
             <GuestRoute>
-              <Signup />
+              <Register />
             </GuestRoute>
+          }
+        />
+        <Route
+          path="/feed"
+          element={
+            <PrivateRoute>
+              <Connections />
+            </PrivateRoute>
           }
         />
         <Route
@@ -84,6 +93,22 @@ function App() {
           element={
             <PrivateRoute>
               <ChangePassword />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/my-connections"
+          element={
+            <PrivateRoute>
+              <MyMatches />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <PrivateRoute>
+              <Chat />
             </PrivateRoute>
           }
         />

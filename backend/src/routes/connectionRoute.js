@@ -4,9 +4,12 @@ const {
   connectionRequest,
   connectionReview,
   getAllConnectionRequests,
+  getPendingReceived,
+  getPendingSent,
   getAllAcceptedRequests,
   getConnectionFeed,
   getRejectedConnection,
+  getNearbyConnections,
 } = require("../controllers/connectionController");
 
 const router = express.Router();
@@ -27,6 +30,16 @@ router.get(
   getAllConnectionRequests
 );
 router.get(
+  "/connection-requests/pending-received",
+  authMiddleware,
+  getPendingReceived
+);
+router.get(
+  "/connection-requests/pending-sent",
+  authMiddleware,
+  getPendingSent
+);
+router.get(
   "/connection-requests/accepted-requests",
   authMiddleware,
   getAllAcceptedRequests
@@ -41,5 +54,6 @@ router.get(
   authMiddleware,
   getConnectionFeed
 );
+router.get("/nearby", authMiddleware, getNearbyConnections);
 
 module.exports = router;

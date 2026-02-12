@@ -51,7 +51,7 @@ const LogIn = () => {
     setError("");
 
     try {
-      const response = await api.post("/login", formData);
+      const response = await api.post("/auth/login", formData);
       console.log(response);
 
       const user = response.data.user;

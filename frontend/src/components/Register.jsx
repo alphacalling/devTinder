@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../apis";
 import toast from "react-hot-toast";
 
-const Signup = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
     userName: "",
     email: "",
@@ -41,7 +41,7 @@ const Signup = () => {
     setError("");
 
     try {
-      const response = await api.post("/register", formData);
+      const response = await api.post("/auth/register", formData);
       console.log(response.data);
       toast.success("Registration successful");
       navigate("/login");
@@ -148,4 +148,4 @@ const Signup = () => {
   );
 };
 
-export default Signup;
+export default Register;
