@@ -259,7 +259,7 @@ const getPendingReceived = async (req, res) => {
         _id: r.senderId._id,
         requestId: r._id,
       }));
-    // Dedupe by user _id (same user should not appear twice)
+    // (same user should not appear twice)
     const seen = new Set();
     const deduped = list.filter((item) => {
       const id = item._id?.toString();
@@ -334,7 +334,7 @@ const getPendingSent = async (req, res) => {
   }
 };
 
-// Legacy: incoming interested (keep same route name for compatibility)
+// incoming interested
 const getAllConnectionRequests = async (req, res) => {
   const { userId } = req.user;
   const findRequests = await connectionRequestModel
@@ -396,7 +396,7 @@ const getAllAcceptedRequests = async (req, res) => {
           : r.senderId;
       return other;
     });
-    // Dedupe by user _id (same connection should not show same user twice)
+    // (same connection should not show same user twice)
     const seenAccepted = new Set();
     const dedupedAccepted = mappedRequests.filter((item) => {
       const id = item?._id?.toString();

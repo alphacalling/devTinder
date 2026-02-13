@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -24,6 +26,7 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: ["male", "female", "other"],
+      lowercase: true,
     },
     phone: {
       type: String,
@@ -36,31 +39,50 @@ const userSchema = new mongoose.Schema(
     },
     photoUrl: {
       type: [String],
-      trim: true,
-      default: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      default: ["https://cdn-icons-png.flaticon.com/512/3135/3135715.png"],
     },
     about: {
       type: String,
       trim: true,
       maxLength: 300,
     },
-    skills: [
-      {
-        type: [String],
-        enum: [
-          "java",
-          "python",
-          "c++",
-          "javascript",
-          "reactjs",
-          "nodejs",
-          "mongoDB",
-          "sql",
-        ],
+    skills: {
+      type: [String],
+      validate: {
+        validator: function (skills) {
+          const acceptedSkills = [
+            "java",
+            "python",
+            "c++",
+            "javascript",
+            "reactjs",
+            "nodejs",
+            "mongodb",
+            "sql",
+          ];
+          return skills.every((skill) =>
+            acceptedSkills.includes(skill.toLowerCase()),
+          );
+        },
+        message: "Invalid skill provided",
       },
-    ],
+      set: function (skills) {
+        if (Array.isArray(skills)) {
+          return skills.map((s) => s.toLowerCase());
+        }
+        return skills;
+      },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+// Pre-save middleware to normalize gender
+userSchema.pre("save", function (next) {
+  if (this.gender) {
+    this.gender = this.gender.toLowerCase();
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", userSchema);

@@ -1,37 +1,49 @@
 require("dotenv").config();
-const userSchema = require("../models/userModel");
+const User = require("../models/userModel");
 const Profile = require("../models/profileModel");
+const {
+  normalizeSkills,
+  normalizeGender,
+  normalizeInterests,
+} = require("../utils/helperfunction");
 
-// view dashboard (user + dating profile)
+// View dashboard (user + dating profile)
 const profileView = async (req, res) => {
-  const { userId } = req.user;
+  try {
+    const { userId } = req.user;
 
-  const userDashboard = await userSchema.findById(userId);
+    const user = await User.findById(userId).select("-password");
 
-  if (!userDashboard) {
-    return res.status(404).json({
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found in Database",
+      });
+    }
+
+    const profile = await Profile.findOne({ user: userId });
+
+    return res.status(200).json({
+      success: true,
+      message: "User profile fetched successfully",
+      user,
+      profile,
+    });
+  } catch (err) {
+    return res.status(500).json({
       success: false,
-      message: "User not found in Database",
+      message: "Server error",
+      error: err.message,
     });
   }
-
-  const profile = await Profile.findOne({ user: userId });
-
-  userDashboard.password = undefined;
-
-  return res.status(200).json({
-    success: true,
-    message: "User profile fetched successfully",
-    user: userDashboard,
-    profile,
-  });
 };
 
-// profile update
+// Profile update
 const profileUpdate = async (req, res) => {
   try {
     const { userId } = req.user;
-    let {
+
+    const {
       userName,
       photoUrl,
       age,
@@ -40,7 +52,6 @@ const profileUpdate = async (req, res) => {
       gender,
       about,
       location,
-      // profile-specific fields
       tagline,
       bio,
       interests,
@@ -54,30 +65,21 @@ const profileUpdate = async (req, res) => {
       longitude,
     } = req.body;
 
-    const findUser = await userSchema.findById(userId);
-    if (!findUser) {
+    const user = await User.findById(userId);
+
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found in Database",
       });
     }
 
-    const acceptedSkills = [
-      "java",
-      "python",
-      "c++",
-      "javascript",
-      "reactjs",
-      "nodejs",
-      "mongodb",
-      "sql",
-    ];
-
+    // Handle photoUrl
     if (photoUrl !== undefined) {
       if (typeof photoUrl === "string") {
-        findUser.photoUrl = [photoUrl];
+        user.photoUrl = [photoUrl];
       } else if (Array.isArray(photoUrl)) {
-        findUser.photoUrl = photoUrl;
+        user.photoUrl = photoUrl;
       } else {
         return res.status(400).json({
           success: false,
@@ -86,99 +88,118 @@ const profileUpdate = async (req, res) => {
       }
     }
 
+    // Handle skills
     if (skills !== undefined) {
-      if (typeof skills === "string") {
-        skills = [skills];
-      }
-      if (!Array.isArray(skills)) {
-        return res.status(400).json({
-          success: false,
-          message: "Skills must be a string or an array of strings",
-        });
-      }
-      const normalizedSkills = skills.map((s) => s.toLowerCase());
+      const skillsResult = normalizeSkills(skills);
 
-      // check invalid skills
-      const invalidSkills = normalizedSkills.filter(
-        (s) => !acceptedSkills.includes(s)
-      );
-      if (invalidSkills.length > 0) {
+      if (skillsResult.error) {
         return res.status(400).json({
           success: false,
-          message: `Invalid skills: ${invalidSkills.join(", ")}`,
+          message: skillsResult.error,
         });
       }
 
-      findUser.skills = normalizedSkills;
+      user.skills = skillsResult.data;
     }
 
-    // Update other fields if provided
-    if (userName !== undefined) findUser.userName = userName;
-    if (age !== undefined) findUser.age = age;
-    if (phone !== undefined) findUser.phone = phone;
-    if (gender !== undefined) findUser.gender = gender;
-    if (about !== undefined) findUser.about = about;
-    if (location !== undefined) findUser.location = location;
+    // Handle gender
+    if (gender !== undefined) {
+      const genderResult = normalizeGender(gender);
 
-    // Upsert profile document
-    const existingProfile = await Profile.findOne({ user: userId });
-
-    let profileData = existingProfile || new Profile({ user: userId });
-
-    if (tagline !== undefined) profileData.tagline = tagline;
-    if (bio !== undefined) profileData.bio = bio;
-
-    if (interests !== undefined) {
-      if (typeof interests === "string") {
-        interests = [interests];
-      }
-      if (!Array.isArray(interests)) {
+      if (genderResult.error) {
         return res.status(400).json({
           success: false,
-          message: "Interests must be a string or an array of strings",
+          message: genderResult.error,
         });
       }
-      profileData.interests = interests;
+
+      user.gender = genderResult.data;
+    }
+
+    // Update other user fields
+    if (userName !== undefined) user.userName = userName;
+    if (age !== undefined) user.age = age;
+    if (phone !== undefined) user.phone = phone;
+    if (about !== undefined) user.about = about;
+    if (location !== undefined) user.location = location;
+
+    // Handle Profile document
+    let profile = await Profile.findOne({ user: userId });
+
+    if (!profile) {
+      profile = new Profile({ user: userId });
+    }
+
+    // Update profile fields
+    if (tagline !== undefined) profile.tagline = tagline;
+    if (bio !== undefined) profile.bio = bio;
+
+    // Handle interests
+    if (interests !== undefined) {
+      const interestsResult = normalizeInterests(interests);
+
+      if (interestsResult.error) {
+        return res.status(400).json({
+          success: false,
+          message: interestsResult.error,
+        });
+      }
+
+      profile.interests = interestsResult.data;
     }
 
     if (relationshipGoal !== undefined)
-      profileData.relationshipGoal = relationshipGoal;
-    if (jobTitle !== undefined) profileData.jobTitle = jobTitle;
-    if (company !== undefined) profileData.company = company;
-    if (education !== undefined) profileData.education = education;
-    if (hometown !== undefined) profileData.hometown = hometown;
+      profile.relationshipGoal = relationshipGoal;
+    if (jobTitle !== undefined) profile.jobTitle = jobTitle;
+    if (company !== undefined) profile.company = company;
+    if (education !== undefined) profile.education = education;
+    if (hometown !== undefined) profile.hometown = hometown;
 
+    // Handle preferences
     if (preferences !== undefined) {
-      profileData.preferences = {
-        ...profileData.preferences?.toObject?.(),
+      profile.preferences = {
+        ...(profile.preferences?.toObject?.() || profile.preferences || {}),
         ...preferences,
       };
     }
 
+    // Handle geoLocation
     if (
       latitude !== undefined &&
       longitude !== undefined &&
       !Number.isNaN(Number(latitude)) &&
       !Number.isNaN(Number(longitude))
     ) {
-      profileData.geoLocation = {
+      profile.geoLocation = {
         type: "Point",
         coordinates: [Number(longitude), Number(latitude)],
       };
     }
 
-    // Save user & profile
-    await findUser.save();
-    const savedProfile = await profileData.save();
-    findUser.password = undefined;
+    // Save both documents
+    await user.save();
+    const savedProfile = await profile.save();
+
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
 
     return res.status(200).json({
       success: true,
       message: "User profile updated successfully",
-      user: findUser,
+      user: userResponse,
       profile: savedProfile,
     });
   } catch (err) {
+    // Handle Mongoose validation errors
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        error: err.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -187,7 +208,4 @@ const profileUpdate = async (req, res) => {
   }
 };
 
-module.exports = {
-  profileView,
-  profileUpdate,
-};
+module.exports = { profileView, profileUpdate };
