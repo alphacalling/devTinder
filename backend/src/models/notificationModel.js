@@ -9,7 +9,13 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["new_user", "connection_request", "connection_accepted", "connection_rejected", "chat"],
+      enum: [
+        "new_user",
+        "connection_request",
+        "connection_accepted",
+        "connection_rejected",
+        "chat",
+      ],
       required: true,
     },
     fromUserId: {
@@ -21,7 +27,7 @@ const notificationSchema = new mongoose.Schema(
     read: { type: Boolean, default: false },
     meta: { type: mongoose.Schema.Types.Mixed },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 notificationSchema.index({ userId: 1, read: 1, createdAt: -1 });

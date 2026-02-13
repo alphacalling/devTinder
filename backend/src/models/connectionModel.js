@@ -20,7 +20,8 @@ const connectionRequestModel = new mongoose.Schema(
   },
   { timestamps: true }
 );
-connectionRequestModel.index({ senderId: 1, receiverId: 1 });
+// One request per (sender, receiver) pair — no duplicates
+connectionRequestModel.index({ senderId: 1, receiverId: 1 }, { unique: true });
 
 module.exports = mongoose.model(
   "ConnectionRequest",

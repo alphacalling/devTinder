@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import api from "../apis";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080";
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080";
 
 function formatTime(createdAt) {
   if (!createdAt) return "";
@@ -42,7 +43,11 @@ export default function NotificationBell() {
   useEffect(() => {
     socketRef.current = io(SOCKET_URL, {
       withCredentials: true,
-      auth: document.cookie.split("; ").find((r) => r.startsWith("token="))?.split("=")[1] || {},
+      auth:
+        document.cookie
+          .split("; ")
+          .find((r) => r.startsWith("token="))
+          ?.split("=")[1] || {},
     });
     socketRef.current.on("notification", (payload) => {
       setList((prev) => [{ ...payload, read: false }, ...prev]);
@@ -72,7 +77,11 @@ export default function NotificationBell() {
   };
 
   const getLink = (n) => {
-    if (n.type === "connection_request" || n.type === "connection_accepted" || n.type === "connection_rejected") {
+    if (
+      n.type === "connection_request" ||
+      n.type === "connection_accepted" ||
+      n.type === "connection_rejected"
+    ) {
       return "/my-connections";
     }
     if (n.type === "chat" && n.fromUserId) return `/chat?with=${n.fromUserId}`;
@@ -88,11 +97,21 @@ export default function NotificationBell() {
         className="relative p-2 rounded-full text-gray-600 hover:bg-white/60 transition"
         aria-label="Notifications"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white px-1.5">
+          <span className="absolute top-0 right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white px-1.5">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -114,9 +133,13 @@ export default function NotificationBell() {
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+              <div className="p-4 text-center text-gray-500 text-sm">
+                Loading...
+              </div>
             ) : list.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">No notifications yet</div>
+              <div className="p-4 text-center text-gray-500 text-sm">
+                No notifications yet
+              </div>
             ) : (
               list.slice(0, 20).map((n) => (
                 <Link
@@ -126,7 +149,9 @@ export default function NotificationBell() {
                   className={`block px-4 py-3 border-b border-gray-100 hover:bg-pink-50/50 transition ${!n.read ? "bg-pink-50/30" : ""}`}
                 >
                   <p className="text-sm text-gray-800">{n.message}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatTime(n.createdAt)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {formatTime(n.createdAt)}
+                  </p>
                 </Link>
               ))
             )}

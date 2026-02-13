@@ -22,7 +22,7 @@ const Navbar = () => {
   // }, [user]);
 
   return (
-    <nav className="relative z-30 bg-gradient-to-r from-pink-100 via-pink-50 to-purple-100 shadow-lg px-6 py-4">
+    <nav className="relative z-30 bg-linear-to-r from-pink-100 via-pink-50 to-purple-100 shadow-lg px-6 py-4">
       <div className="flex justify-between items-center">
         {/* Brand */}
         <div className="text-3xl font-extrabold text-pink-600 tracking-tight">

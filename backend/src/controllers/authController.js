@@ -101,7 +101,7 @@ const logIn = async (req, res) => {
       process.env.ACCESS_SECRET,
       {
         expiresIn: 60 * 60 * 15,
-      }
+      },
     );
     res.cookie("token", token, {
       httpOnly: true,
@@ -160,7 +160,7 @@ const changePassword = async (req, res) => {
     }
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      findUser.password
+      findUser.password,
     );
     if (!isPasswordValid) {
       return res.status(400).json({
@@ -204,14 +204,14 @@ const refreshToken = async (req, res) => {
 
     const decoded = jwt.verify(
       refreshTokenFromCookie,
-      process.env.REFRESH_SECRET
+      process.env.REFRESH_SECRET,
     );
 
     // Issue new access token
     const accessToken = jwt.sign(
       { userId: decoded.userId },
       process.env.ACCESS_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
 
     const currentTime = Math.floor(Date.now() / 1000);
@@ -224,7 +224,7 @@ const refreshToken = async (req, res) => {
       newRefreshToken = jwt.sign(
         { userId: decoded.userId },
         process.env.REFRESH_SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "1d" },
       );
 
       res.cookie("refreshToken", newRefreshToken, {

@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import api from "../apis";
 import toast from "react-hot-toast";
 
-const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+const DEFAULT_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
 const TABS = [
   { id: "find", label: "Find people" },
@@ -12,7 +13,15 @@ const TABS = [
   { id: "pending_sent", label: "Pending (sent)" },
 ];
 
-function UserCard({ user, showActions = false, showConnectSkip = false, onAccept, onReject, onConnect, onSkip }) {
+function UserCard({
+  user,
+  showActions = false,
+  showConnectSkip = false,
+  onAccept,
+  onReject,
+  onConnect,
+  onSkip,
+}) {
   const primaryPhoto = Array.isArray(user.photoUrl)
     ? user.photoUrl?.[0]
     : user.photoUrl;
@@ -25,7 +34,9 @@ function UserCard({ user, showActions = false, showConnectSkip = false, onAccept
         src={photo}
         alt={user.userName}
         className="w-14 h-14 rounded-full object-cover"
-        onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+        onError={(e) => {
+          e.target.src = DEFAULT_AVATAR;
+        }}
       />
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-900">
@@ -101,7 +112,7 @@ export default function MyMatches() {
     setFindLoading(true);
     try {
       const res = await api.get(
-        "/connections/connection-requests/connection-feed?page=1&limit=20"
+        "/connections/connection-requests/connection-feed?page=1&limit=20",
       );
       setFindPeople(res.data.data || []);
     } catch (err) {
@@ -143,7 +154,7 @@ export default function MyMatches() {
   const handleConnect = async (userId) => {
     try {
       const res = await api.post(
-        `/connections/connection-request/send/interested/${userId}`
+        `/connections/connection-request/send/interested/${userId}`,
       );
       const data = res?.data;
       if (data?.alreadyReceived) {
@@ -163,9 +174,7 @@ export default function MyMatches() {
 
   const handleSkip = async (userId) => {
     try {
-      await api.post(
-        `/connections/connection-request/send/ignored/${userId}`
-      );
+      await api.post(`/connections/connection-request/send/ignored/${userId}`);
       setFindPeople((prev) => prev.filter((u) => u._id !== userId));
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed");
@@ -175,7 +184,7 @@ export default function MyMatches() {
   const handleAccept = async (senderId) => {
     try {
       await api.post(
-        `/connections/connection-request/review/accepted/${senderId}`
+        `/connections/connection-request/review/accepted/${senderId}`,
       );
       toast.success("Request accepted");
       fetchAll();
@@ -187,7 +196,7 @@ export default function MyMatches() {
   const handleReject = async (senderId) => {
     try {
       await api.post(
-        `/connections/connection-request/review/rejected/${senderId}`
+        `/connections/connection-request/review/rejected/${senderId}`,
       );
       toast.success("Request rejected");
       fetchAll();
@@ -217,7 +226,7 @@ export default function MyMatches() {
   const isLoading = tab === "find" ? findLoading : loading;
 
   return (
-    <div className="min-h-[610px] bg-gray-50 pt-10 px-4">
+    <div className="min-h-152 bg-gray-50 pt-10 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-semibold mb-2 text-gray-900">
           Your Connections
@@ -245,7 +254,9 @@ export default function MyMatches() {
 
         {isLoading && (
           <div className="text-gray-700 py-4">
-            {tab === "find" ? "Finding people you can connect with..." : "Loading..."}
+            {tab === "find"
+              ? "Finding people you can connect with..."
+              : "Loading..."}
           </div>
         )}
 

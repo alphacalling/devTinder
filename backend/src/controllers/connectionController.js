@@ -5,76 +5,94 @@ const connectionRequestModel = require("../models/connectionModel");
 const Profile = require("../models/profileModel");
 const Notification = require("../models/notificationModel");
 
-// sending connection requests to another user
+/*
+  CONNECTION FLOW:
+  - I send "interested" → other user sees it in Pending (for you); I see it in Pending (sent).
+  - When they Accept → status becomes "accepted" → request leaves both Pending lists and appears in Accepted for both.
+  - When they Reject → status becomes "rejected" → request leaves Pending (for you) and Pending (sent).
+*/
+
+// Normalize current user id from JWT
+const getCurrentUserId = (req) => {
+  const raw = req.user?.userId ?? req.user?.id;
+  if (!raw) return null;
+  return mongoose.Types.ObjectId.isValid(raw)
+    ? new mongoose.Types.ObjectId(raw)
+    : raw;
+};
+
+// Send connection request (interested / ignored)
 const connectionRequest = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = getCurrentUserId(req);
     const { receiverId, requestStatus } = req.params;
-
-    // validation in status field
-    const values = ["ignored", "interested", "accepted", "rejected"];
-    if (!values.includes(requestStatus)) {
-      return res.status(400).json({
-        success: false,
-        message: `${requestStatus} is incorrect status`,
-      });
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
     }
 
+    if (!["ignored", "interested"].includes(requestStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Use interested or ignored",
+      });
+    }
     if (!receiverId) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide receiverId",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide receiverId" });
     }
-    // checking if receiver exists
+
     const findUser = await userSchema.findById(receiverId);
     if (!findUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found in Database",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
-    // if sender is equal to receiver
-    if (userId === receiverId) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot send request to yourself",
-      });
+    if (userId.toString() === receiverId) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "You cannot send request to yourself",
+        });
     }
-    // if I already sent a request to them → block duplicate
-    const findRequestSentByMe = await connectionRequestModel.findOne({
+
+    // Already sent by me → block
+    const sentByMe = await connectionRequestModel.findOne({
       senderId: userId,
       receiverId,
     });
-    if (findRequestSentByMe) {
+    if (sentByMe) {
       return res.status(400).json({
         success: false,
         message: "Request already sent",
       });
     }
-    // if they already sent "interested" to me → don't create duplicate; tell client to show Accept/Reject in Pending
-    // (if they sent "ignored" we fall through and create our "interested" request)
-    const findRequestSentToMe = await connectionRequestModel.findOne({
+
+    // They already sent "interested" to me → no duplicate; they are in my Pending (for you)
+    const sentToMe = await connectionRequestModel.findOne({
       senderId: receiverId,
       receiverId: userId,
       status: "interested",
     });
-    if (findRequestSentToMe) {
+    if (sentToMe) {
       return res.status(200).json({
         success: true,
         alreadyReceived: true,
-        message: "They already want to connect. Accept or reject in Pending requests.",
-        requestId: findRequestSentToMe._id,
-        request: findRequestSentToMe,
+        message:
+          "They already sent you a request. Accept or reject in Pending (for you).",
+        requestId: sentToMe._id,
       });
     }
-    // sending new request to receiverId
+
+    // Create new request → they will see it in Pending (for you), I in Pending (sent)
     const newRequest = new connectionRequestModel({
       senderId: userId,
       receiverId,
       status: requestStatus,
     });
-
     const savedRequest = await newRequest.save();
     await savedRequest.populate("receiverId", [
       "userName",
@@ -82,8 +100,11 @@ const connectionRequest = async (req, res) => {
       "gender",
     ]);
 
-    const sender = await userSchema.findById(userId).select("userName").lean();
     if (requestStatus === "interested") {
+      const sender = await userSchema
+        .findById(userId)
+        .select("userName")
+        .lean();
       const notif = new Notification({
         userId: receiverId,
         type: "connection_request",
@@ -108,7 +129,7 @@ const connectionRequest = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `You sent connection request to ${findUser.userName}`,
+      message: `Request sent to ${findUser.userName}`,
       data: savedRequest,
     });
   } catch (err) {
@@ -119,54 +140,49 @@ const connectionRequest = async (req, res) => {
   }
 };
 
-// accepting or rejecting requsts
+// Accept or Reject a request (only for requests that are currently "interested")
+// After accept → request leaves Pending (for you) and Pending (sent), appears in Accepted for both
 const connectionReview = async (req, res) => {
   try {
-    const { userId } = req.user;
-    // console.log(userId, userName);
-
+    const userId = getCurrentUserId(req);
     const { senderId, requestStatus } = req.params;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
+    }
     if (!senderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide sender Id",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide sender Id" });
     }
-    const requestedValue = ["accepted", "rejected"];
-    if (!requestedValue.includes(requestStatus)) {
-      return res.status(400).json({
-        success: false,
-        message: `${requestStatus} is incorrect status`,
-      });
+    if (!["accepted", "rejected"].includes(requestStatus)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Use accepted or rejected" });
     }
+
     const findUser = await userSchema.findById(senderId);
     if (!findUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found in Database",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
+    // Request must be: they sent to me (I am receiver), and still "interested"
     const findRequest = await connectionRequestModel.findOne({
-      $or: [
-        { senderId: userId, receiverId: senderId },
-        { senderId: senderId, receiverId: userId },
-      ],
+      senderId,
+      receiverId: userId,
+      status: "interested",
     });
 
     if (!findRequest) {
       return res.status(404).json({
         success: false,
-        message: "Request not found in Database",
+        message: "No pending request from this user",
       });
     }
-    // if (findRequest.status === "accepted") {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Request already accepted",
-    //   });
-    // }
-    // save the connection request
+
     findRequest.status = requestStatus;
     await findRequest.save();
 
@@ -214,24 +230,27 @@ const connectionReview = async (req, res) => {
   }
 };
 
-// Normalize current user id from JWT (supports both userId and id)
-const getCurrentUserId = (req) => {
-  const raw = req.user?.userId ?? req.user?.id;
-  if (!raw) return null;
-  return mongoose.Types.ObjectId.isValid(raw) ? new mongoose.Types.ObjectId(raw) : raw;
-};
-
-// Incoming: requests where someone sent "interested" to me (I am receiver)
+// Pending (for you): requests where someone sent "interested" to me → I can Accept/Reject
 const getPendingReceived = async (req, res) => {
   try {
     const receiverId = getCurrentUserId(req);
     if (!receiverId) {
-      return res.status(401).json({ success: false, message: "User id not found" });
+      return res
+        .status(401)
+        .json({ success: false, message: "User id not found" });
     }
     const findRequests = await connectionRequestModel
       .find({ receiverId, status: "interested" })
       .sort({ createdAt: -1 })
-      .populate("senderId", ["userName", "photoUrl", "gender", "age", "about", "location", "skills"])
+      .populate("senderId", [
+        "userName",
+        "photoUrl",
+        "gender",
+        "age",
+        "about",
+        "location",
+        "skills",
+      ])
       .lean();
     const list = findRequests
       .filter((r) => r.senderId)
@@ -240,13 +259,21 @@ const getPendingReceived = async (req, res) => {
         _id: r.senderId._id,
         requestId: r._id,
       }));
+    // Dedupe by user _id (same user should not appear twice)
+    const seen = new Set();
+    const deduped = list.filter((item) => {
+      const id = item._id?.toString();
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
     return res.status(200).json({
       success: true,
       message:
-        list.length === 0
+        deduped.length === 0
           ? "No pending requests"
           : "Pending requests fetched",
-      data: list,
+      data: deduped,
     });
   } catch (err) {
     return res.status(500).json({
@@ -256,27 +283,48 @@ const getPendingReceived = async (req, res) => {
   }
 };
 
-// Sent: requests I sent with status "interested" (waiting for them to accept)
+// Pending (sent): requests I sent with status "interested" → when they accept, these move to Accepted
 const getPendingSent = async (req, res) => {
   try {
     const senderId = getCurrentUserId(req);
     if (!senderId) {
-      return res.status(401).json({ success: false, message: "User id not found" });
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
     }
     const findRequests = await connectionRequestModel
       .find({ senderId, status: "interested" })
       .sort({ createdAt: -1 })
-      .populate("receiverId", ["userName", "photoUrl", "gender", "age", "about"]);
-    const list = findRequests.map((r) => ({
-      ...r.receiverId?.toObject?.(),
-      _id: r.receiverId?._id,
-      requestId: r._id,
-    }));
+      .populate("receiverId", [
+        "userName",
+        "photoUrl",
+        "gender",
+        "age",
+        "about",
+        "location",
+        "skills",
+      ])
+      .lean();
+    const list = findRequests
+      .filter((r) => r.receiverId)
+      .map((r) => ({
+        ...r.receiverId,
+        _id: r.receiverId._id,
+        requestId: r._id,
+      }));
+    // Dedupe by user _id
+    const seenSent = new Set();
+    const dedupedSent = list.filter((item) => {
+      const id = item._id?.toString();
+      if (!id || seenSent.has(id)) return false;
+      seenSent.add(id);
+      return true;
+    });
     return res.status(200).json({
       success: true,
       message:
-        list.length === 0 ? "No pending sent" : "Pending sent fetched",
-      data: list,
+        dedupedSent.length === 0 ? "No pending sent" : "Pending sent fetched",
+      data: dedupedSent,
     });
   } catch (err) {
     return res.status(500).json({
@@ -307,10 +355,15 @@ const getAllConnectionRequests = async (req, res) => {
   });
 };
 
-// Accepted: return the "other" user for each accepted connection
+// Accepted: connections where status is "accepted" → show the other user for each
 const getAllAcceptedRequests = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
+    }
     const findRequest = await connectionRequestModel
       .find({
         $or: [
@@ -319,21 +372,45 @@ const getAllAcceptedRequests = async (req, res) => {
         ],
       })
       .sort({ updatedAt: -1 })
-      .populate("senderId", ["userName", "photoUrl", "gender", "age", "about", "location"])
-      .populate("receiverId", ["userName", "photoUrl", "gender", "age", "about", "location"])
+      .populate("senderId", [
+        "userName",
+        "photoUrl",
+        "gender",
+        "age",
+        "about",
+        "location",
+      ])
+      .populate("receiverId", [
+        "userName",
+        "photoUrl",
+        "gender",
+        "age",
+        "about",
+        "location",
+      ])
       .lean();
     const mappedRequests = findRequest.map((r) => {
       const other =
-        r.senderId._id.toString() === userId.toString() ? r.receiverId : r.senderId;
+        r.senderId._id.toString() === userId.toString()
+          ? r.receiverId
+          : r.senderId;
       return other;
+    });
+    // Dedupe by user _id (same connection should not show same user twice)
+    const seenAccepted = new Set();
+    const dedupedAccepted = mappedRequests.filter((item) => {
+      const id = item?._id?.toString();
+      if (!id || seenAccepted.has(id)) return false;
+      seenAccepted.add(id);
+      return true;
     });
     return res.status(200).json({
       success: true,
       message:
-        mappedRequests.length === 0
+        dedupedAccepted.length === 0
           ? "No accepted connections found"
           : "Connection requests fetched successfully",
-      data: mappedRequests,
+      data: dedupedAccepted,
     });
   } catch (err) {
     return res.status(500).json({
@@ -356,7 +433,7 @@ const getRejectedConnection = async (req, res) => {
           ],
         },
         { status: "rejected" },
-        { senderId: userId }
+        { senderId: userId },
       )
       .populate("receiverId", ["userName", "photoUrl", "gender"]);
     return res.status(200).json({
@@ -393,7 +470,7 @@ const getConnectionFeed = async (req, res) => {
         $or: [{ senderId: userId }, { receiverId: userId }],
         status: { $in: ["accepted", "rejected"] },
       },
-      "senderId receiverId"
+      "senderId receiverId",
     );
 
     const excludedUserIds = new Set();
@@ -526,7 +603,7 @@ const getNearbyConnections = async (req, res) => {
       {
         $or: [{ senderId: userId }, { receiverId: userId }],
       },
-      "senderId receiverId"
+      "senderId receiverId",
     );
 
     const excludedUserIds = new Set();
@@ -543,7 +620,10 @@ const getNearbyConnections = async (req, res) => {
       user: { $nin: Array.from(excludedUserIds) },
       geoLocation: {
         $geoWithin: {
-          $centerSphere: [viewerProfile.geoLocation.coordinates, radiusInRadians],
+          $centerSphere: [
+            viewerProfile.geoLocation.coordinates,
+            radiusInRadians,
+          ],
         },
       },
     })

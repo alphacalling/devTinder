@@ -13,7 +13,11 @@ const Connections = () => {
   const [mode, setMode] = useState("recommended");
   const [radiusKm, setRadiusKm] = useState(5);
 
-  const fetchFeedData = async (pageNum, currentMode = mode, currentRadius = radiusKm) => {
+  const fetchFeedData = async (
+    pageNum,
+    currentMode = mode,
+    currentRadius = radiusKm,
+  ) => {
     setLoading(true);
     try {
       const baseUrl = import.meta.env.VITE_API_URL;
@@ -67,17 +71,17 @@ const Connections = () => {
         {
           method: "POST",
           credentials: "include",
-        }
+        },
       );
       const data = await res.json();
       if (data.success) {
         if (data.alreadyReceived) {
-          toast.success("They already want to connect — accept in Pending requests");
+          toast.success(
+            "They already want to connect — accept in Pending requests",
+          );
         } else {
           toast.success(
-            action === "interested"
-              ? "You liked this profile"
-              : "Skipped"
+            action === "interested" ? "You liked this profile" : "Skipped",
           );
         }
         handleNext();
@@ -174,7 +178,9 @@ const Connections = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-14 h-14 rounded-full border-4 border-pink-200 border-t-pink-500 animate-spin" />
-            <p className="mt-4 text-gray-500 font-medium">Finding people for you...</p>
+            <p className="mt-4 text-gray-500 font-medium">
+              Finding people for you...
+            </p>
           </div>
         ) : feed.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
@@ -197,7 +203,8 @@ const Connections = () => {
               No one new right now
             </h2>
             <p className="text-gray-500 max-w-sm mb-6">
-              Check back later or update your preferences in your profile to see more matches.
+              Check back later or update your preferences in your profile to see
+              more matches.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <button
@@ -205,8 +212,18 @@ const Connections = () => {
                 onClick={handleRefresh}
                 className="inline-flex items-center gap-2 rounded-full bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 font-medium transition"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
                 Refresh
               </button>
@@ -271,14 +288,16 @@ const Connections = () => {
                         )}
                         {profile.interests?.length > 0 && (
                           <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
-                            {profile.interests.slice(0, 5).map((interest, i) => (
-                              <span
-                                key={i}
-                                className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-medium"
-                              >
-                                {interest}
-                              </span>
-                            ))}
+                            {profile.interests
+                              .slice(0, 5)
+                              .map((interest, i) => (
+                                <span
+                                  key={i}
+                                  className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-medium"
+                                >
+                                  {interest}
+                                </span>
+                              ))}
                           </div>
                         )}
                       </div>
@@ -290,8 +309,18 @@ const Connections = () => {
                         onClick={handleSkip}
                         className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 font-semibold transition"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                         Skip
                       </button>
@@ -300,7 +329,11 @@ const Connections = () => {
                         onClick={handleLike}
                         className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white py-3.5 font-semibold shadow-lg shadow-pink-500/30 transition"
                       >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                         Connect
@@ -314,8 +347,18 @@ const Connections = () => {
                         disabled={page === 1}
                         className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15 19l-7-7 7-7"
+                          />
                         </svg>
                         Previous
                       </button>
@@ -326,8 +369,17 @@ const Connections = () => {
                         className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
                         Next
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 5l7 7-7 7"
+                          />
                         </svg>
                       </button>
                     </div>
