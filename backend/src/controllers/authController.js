@@ -109,6 +109,17 @@ const logIn = async (req, res) => {
       sameSite: "strict",
     });
 
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("notification", {
+        type: "new_user",
+        userId: String(findUser._id),
+        userName: findUser.userName,
+        message: `${findUser.userName} just joined`,
+        createdAt: new Date(),
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "User logged In successfully",

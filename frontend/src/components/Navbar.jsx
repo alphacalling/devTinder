@@ -1,6 +1,7 @@
-import {  useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import Threedot from "./Threedot";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const user = useSelector((store) => store.user);
@@ -72,9 +73,14 @@ const Navbar = () => {
           )}
 
           {user && (
-            <li>
-              <Threedot />
-            </li>
+            <>
+              <li>
+                <NotificationBell />
+              </li>
+              <li>
+                <Threedot />
+              </li>
+            </>
           )}
         </ul>
       </div>

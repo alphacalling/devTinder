@@ -1,7 +1,9 @@
 require("dotenv").config();
+const mongoose = require("mongoose");
 const userSchema = require("../models/userModel");
 const connectionRequestModel = require("../models/connectionModel");
 const Profile = require("../models/profileModel");
+const Notification = require("../models/notificationModel");
 
 // sending connection requests to another user
 const connectionRequest = async (req, res) => {
@@ -39,17 +41,31 @@ const connectionRequest = async (req, res) => {
         message: "You cannot send request to yourself",
       });
     }
-    // if any request sent already
-    const findRequest = await connectionRequestModel.findOne({
-      $or: [
-        { senderId: userId, receiverId },
-        { senderId: receiverId, receiverId: userId },
-      ],
+    // if I already sent a request to them → block duplicate
+    const findRequestSentByMe = await connectionRequestModel.findOne({
+      senderId: userId,
+      receiverId,
     });
-    if (findRequest) {
+    if (findRequestSentByMe) {
       return res.status(400).json({
         success: false,
         message: "Request already sent",
+      });
+    }
+    // if they already sent "interested" to me → don't create duplicate; tell client to show Accept/Reject in Pending
+    // (if they sent "ignored" we fall through and create our "interested" request)
+    const findRequestSentToMe = await connectionRequestModel.findOne({
+      senderId: receiverId,
+      receiverId: userId,
+      status: "interested",
+    });
+    if (findRequestSentToMe) {
+      return res.status(200).json({
+        success: true,
+        alreadyReceived: true,
+        message: "They already want to connect. Accept or reject in Pending requests.",
+        requestId: findRequestSentToMe._id,
+        request: findRequestSentToMe,
       });
     }
     // sending new request to receiverId
@@ -65,6 +81,30 @@ const connectionRequest = async (req, res) => {
       "photoUrl",
       "gender",
     ]);
+
+    const sender = await userSchema.findById(userId).select("userName").lean();
+    if (requestStatus === "interested") {
+      const notif = new Notification({
+        userId: receiverId,
+        type: "connection_request",
+        fromUserId: userId,
+        fromUserName: sender?.userName,
+        message: `${sender?.userName || "Someone"} wants to connect`,
+        meta: { requestId: savedRequest._id },
+      });
+      await notif.save();
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${receiverId}`).emit("notification", {
+          _id: notif._id,
+          type: "connection_request",
+          fromUserId: String(userId),
+          fromUserName: notif.fromUserName,
+          message: notif.message,
+          createdAt: notif.createdAt,
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -100,7 +140,7 @@ const connectionReview = async (req, res) => {
       });
     }
     const findUser = await userSchema.findById(senderId);
-    if (findUser.length === 0) {
+    if (!findUser) {
       return res.status(404).json({
         success: false,
         message: "User not found in Database",
@@ -130,6 +170,33 @@ const connectionReview = async (req, res) => {
     findRequest.status = requestStatus;
     await findRequest.save();
 
+    const notif = new Notification({
+      userId: senderId,
+      type:
+        requestStatus === "accepted"
+          ? "connection_accepted"
+          : "connection_rejected",
+      fromUserId: userId,
+      fromUserName: findUser?.userName,
+      message:
+        requestStatus === "accepted"
+          ? `${findUser?.userName || "Someone"} accepted your request`
+          : `${findUser?.userName || "Someone"} declined your request`,
+      meta: { requestId: findRequest._id },
+    });
+    await notif.save();
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${senderId}`).emit("notification", {
+        _id: notif._id,
+        type: notif.type,
+        fromUserId: String(userId),
+        fromUserName: notif.fromUserName,
+        message: notif.message,
+        createdAt: notif.createdAt,
+      });
+    }
+
     const connectionRequest = await connectionRequestModel
       .findOne({ _id: findRequest._id })
       .populate("receiverId", ["userName", "photoUrl", "gender"]);
@@ -147,19 +214,32 @@ const connectionReview = async (req, res) => {
   }
 };
 
+// Normalize current user id from JWT (supports both userId and id)
+const getCurrentUserId = (req) => {
+  const raw = req.user?.userId ?? req.user?.id;
+  if (!raw) return null;
+  return mongoose.Types.ObjectId.isValid(raw) ? new mongoose.Types.ObjectId(raw) : raw;
+};
+
 // Incoming: requests where someone sent "interested" to me (I am receiver)
 const getPendingReceived = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const receiverId = getCurrentUserId(req);
+    if (!receiverId) {
+      return res.status(401).json({ success: false, message: "User id not found" });
+    }
     const findRequests = await connectionRequestModel
-      .find({ receiverId: userId, status: "interested" })
+      .find({ receiverId, status: "interested" })
       .sort({ createdAt: -1 })
-      .populate("senderId", ["userName", "photoUrl", "gender", "age", "about"]);
-    const list = findRequests.map((r) => ({
-      ...r.senderId?.toObject?.(),
-      _id: r.senderId?._id,
-      requestId: r._id,
-    }));
+      .populate("senderId", ["userName", "photoUrl", "gender", "age", "about", "location", "skills"])
+      .lean();
+    const list = findRequests
+      .filter((r) => r.senderId)
+      .map((r) => ({
+        ...r.senderId,
+        _id: r.senderId._id,
+        requestId: r._id,
+      }));
     return res.status(200).json({
       success: true,
       message:
@@ -179,9 +259,12 @@ const getPendingReceived = async (req, res) => {
 // Sent: requests I sent with status "interested" (waiting for them to accept)
 const getPendingSent = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const senderId = getCurrentUserId(req);
+    if (!senderId) {
+      return res.status(401).json({ success: false, message: "User id not found" });
+    }
     const findRequests = await connectionRequestModel
-      .find({ senderId: userId, status: "interested" })
+      .find({ senderId, status: "interested" })
       .sort({ createdAt: -1 })
       .populate("receiverId", ["userName", "photoUrl", "gender", "age", "about"]);
     const list = findRequests.map((r) => ({
@@ -303,10 +386,12 @@ const getConnectionFeed = async (req, res) => {
     // Current user's profile & preferences
     const viewerProfile = await Profile.findOne({ user: userId });
 
-    // Find all connections involving the current user
+    // Exclude only accepted/rejected (already decided); show everyone else in feed
+    // so new users and pending "interested" still appear
     const connections = await connectionRequestModel.find(
       {
         $or: [{ senderId: userId }, { receiverId: userId }],
+        status: { $in: ["accepted", "rejected"] },
       },
       "senderId receiverId"
     );
@@ -323,18 +408,29 @@ const getConnectionFeed = async (req, res) => {
       _id: { $nin: Array.from(excludedUserIds) },
     };
 
-    // Apply basic preference filters if available
+    // Apply preference filters: include users who haven't set age/gender so new users appear for everyone
     if (viewerProfile && viewerProfile.preferences) {
       const { gender, minAge, maxAge } = viewerProfile.preferences;
 
       if (gender && gender !== "everyone") {
-        query.gender = gender;
+        query.$or = [
+          { gender: { $exists: false } },
+          { gender: null },
+          { gender: "" },
+          { gender },
+        ];
       }
 
-      if (minAge || maxAge) {
-        query.age = {};
-        if (minAge) query.age.$gte = minAge;
-        if (maxAge) query.age.$lte = maxAge;
+      if (minAge != null || maxAge != null) {
+        const ageCond = {};
+        if (minAge != null) ageCond.$gte = minAge;
+        if (maxAge != null) ageCond.$lte = maxAge;
+        if (Object.keys(ageCond).length) {
+          query.$and = query.$and || [];
+          query.$and.push({
+            $or: [{ age: { $exists: false } }, { age: null }, { age: ageCond }],
+          });
+        }
       }
     }
 

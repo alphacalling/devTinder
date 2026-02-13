@@ -71,11 +71,15 @@ const Connections = () => {
       );
       const data = await res.json();
       if (data.success) {
-        toast.success(
-          action === "interested"
-            ? "You liked this profile"
-            : "Skipped"
-        );
+        if (data.alreadyReceived) {
+          toast.success("They already want to connect — accept in Pending requests");
+        } else {
+          toast.success(
+            action === "interested"
+              ? "You liked this profile"
+              : "Skipped"
+          );
+        }
         handleNext();
       } else {
         toast.error(data.message || "Action failed");
