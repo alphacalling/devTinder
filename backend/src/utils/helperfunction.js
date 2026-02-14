@@ -13,7 +13,7 @@ const ACCEPTED_SKILLS = [
 const ACCEPTED_GENDERS = ["male", "female", "other"];
 
 //* Helper function to normalize skills
-export const normalizeSkills = (skills) => {
+const normalizeSkills = (skills) => {
   if (!skills) return null;
 
   // Convert single string to array
@@ -41,7 +41,7 @@ export const normalizeSkills = (skills) => {
 };
 
 //* Helper function to normalize gender
-export const normalizeGender = (gender) => {
+const normalizeGender = (gender) => {
   if (!gender) return null;
 
   const normalizedGender = gender.trim().toLowerCase();
@@ -56,7 +56,7 @@ export const normalizeGender = (gender) => {
 };
 
 //* Helper function to normalize interests
-export const normalizeInterests = (interests) => {
+const normalizeInterests = (interests) => {
   if (!interests) return null;
 
   if (typeof interests === "string") {
@@ -68,4 +68,10 @@ export const normalizeInterests = (interests) => {
   }
 
   return { data: interests.map((i) => i.trim()) };
+};
+
+module.exports = {
+  normalizeSkills,
+  normalizeGender,
+  normalizeInterests,
 };
