@@ -48,24 +48,6 @@ const userSchema = new mongoose.Schema(
     },
     skills: {
       type: [String],
-      validate: {
-        validator: function (skills) {
-          const acceptedSkills = [
-            "java",
-            "python",
-            "c++",
-            "javascript",
-            "reactjs",
-            "nodejs",
-            "mongodb",
-            "sql",
-          ];
-          return skills.every((skill) =>
-            acceptedSkills.includes(skill.toLowerCase()),
-          );
-        },
-        message: "Invalid skill provided",
-      },
       set: function (skills) {
         if (Array.isArray(skills)) {
           return skills.map((s) => s.toLowerCase());

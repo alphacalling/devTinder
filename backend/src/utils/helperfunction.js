@@ -1,73 +1,75 @@
-// Constants
-const ACCEPTED_SKILLS = [
-  "java",
-  "python",
-  "c++",
-  "javascript",
-  "reactjs",
-  "nodejs",
-  "mongodb",
-  "sql",
-];
+const {
+  GENDER_OPTIONS,
+  SKILLS_OPTIONS,
+  INTERESTS_OPTIONS,
+} = require("./constants");
 
-const ACCEPTED_GENDERS = ["male", "female", "other"];
-
-//* Helper function to normalize skills
 const normalizeSkills = (skills) => {
-  if (!skills) return null;
+  let skillsArray;
 
-  // Convert single string to array
   if (typeof skills === "string") {
-    skills = [skills];
-  }
-
-  if (!Array.isArray(skills)) {
+    skillsArray = skills
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+  } else if (Array.isArray(skills)) {
+    skillsArray = skills
+      .map((s) => (typeof s === "string" ? s.trim().toLowerCase() : ""))
+      .filter(Boolean);
+  } else {
     return { error: "Skills must be a string or an array of strings" };
   }
 
-  // Normalize to lowercase
-  const normalizedSkills = skills.map((s) => s.trim().toLowerCase());
-
-  // Check for invalid skills
-  const invalidSkills = normalizedSkills.filter(
-    (s) => !ACCEPTED_SKILLS.includes(s),
-  );
-
-  if (invalidSkills.length > 0) {
-    return { error: `Invalid skills: ${invalidSkills.join(", ")}` };
-  }
-
-  return { data: normalizedSkills };
-};
-
-//* Helper function to normalize gender
-const normalizeGender = (gender) => {
-  if (!gender) return null;
-
-  const normalizedGender = gender.trim().toLowerCase();
-
-  if (!ACCEPTED_GENDERS.includes(normalizedGender)) {
+  const invalid = skillsArray.filter((s) => !SKILLS_OPTIONS.includes(s));
+  if (invalid.length > 0) {
     return {
-      error: `Invalid gender. Must be one of: ${ACCEPTED_GENDERS.join(", ")}`,
+      error: `Invalid skills: ${invalid.join(", ")}. Allowed: ${SKILLS_OPTIONS.join(", ")}`,
     };
   }
 
-  return { data: normalizedGender };
+  return { data: skillsArray };
 };
 
-//* Helper function to normalize interests
-const normalizeInterests = (interests) => {
-  if (!interests) return null;
-
-  if (typeof interests === "string") {
-    interests = [interests];
+const normalizeGender = (gender) => {
+  if (typeof gender !== "string") {
+    return { error: "Gender must be a string" };
   }
 
-  if (!Array.isArray(interests)) {
+  const normalized = gender.trim().toLowerCase();
+
+  if (!GENDER_OPTIONS.includes(normalized)) {
+    return {
+      error: `Invalid gender: "${gender}". Allowed: ${GENDER_OPTIONS.join(", ")}`,
+    };
+  }
+
+  return { data: normalized };
+};
+
+const normalizeInterests = (interests) => {
+  let interestsArray;
+
+  if (typeof interests === "string") {
+    interestsArray = interests
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+  } else if (Array.isArray(interests)) {
+    interestsArray = interests
+      .map((s) => (typeof s === "string" ? s.trim().toLowerCase() : ""))
+      .filter(Boolean);
+  } else {
     return { error: "Interests must be a string or an array of strings" };
   }
 
-  return { data: interests.map((i) => i.trim()) };
+  const invalid = interestsArray.filter((i) => !INTERESTS_OPTIONS.includes(i));
+  if (invalid.length > 0) {
+    return {
+      error: `Invalid interests: ${invalid.join(", ")}. Allowed: ${INTERESTS_OPTIONS.join(", ")}`,
+    };
+  }
+
+  return { data: interestsArray };
 };
 
 module.exports = {

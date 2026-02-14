@@ -6,21 +6,19 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-// Database connection
 const connectDB = require("./config/database");
-
-// Routes
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const postRoute = require("./routes/postRoute");
-const connectionRoute = require("./routes/connectionRoute");
 const chatRoutes = require("./routes/chatRoutes");
+const optionsRoute = require("./routes/optionsRoute");
+const connectionRoute = require("./routes/connectionRoute");
 const notificationRoutes = require("./routes/notificationRoutes");
 
 // Models for socket
 const Message = require("./models/messageModel");
-const connectionRequestModel = require("./models/connectionModel");
 const Notification = require("./models/notificationModel");
+const connectionRequestModel = require("./models/connectionModel");
 
 const app = express();
 const server = http.createServer(app);
@@ -39,7 +37,7 @@ app.use(
   cors({
     origin: true,
     credentials: true,
-  })
+  }),
 );
 
 // Health check
@@ -53,6 +51,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
+app.use("/api", optionsRoute);
 app.use("/api/posts", postRoute);
 app.use("/api/connections", connectionRoute);
 app.use("/api/chat", chatRoutes);
@@ -116,7 +115,10 @@ io.on("connection", (socket) => {
         ],
       });
       if (!connection) {
-        return callback?.({ success: false, message: "Not an accepted connection" });
+        return callback?.({
+          success: false,
+          message: "Not an accepted connection",
+        });
       }
       const msg = new Message({
         senderId: userId,
